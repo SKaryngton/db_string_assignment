@@ -1,0 +1,46 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}List of Tables{% endblock %}
+
+
+{% block body %}
+    <div class="container" data-controller="hide-message">
+        <h1 class="my-4 text-center">List of Tables</h1>
+
+        {% if message is not null %}
+            <div class="alert alert-success" data-hide-message-target="message">
+                {{ message }}
+            </div>
+        {% endif %}
+
+        {% if tables is empty %}
+            <div class="alert alert-info">
+                There is no Table in the Database.
+            </div>
+        {% else %}
+            <table class="table table-bordered">
+                <thead>
+                <tr>
+                    <th>Table Name</th>
+                    <th>Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for table in tables %}
+                    <tr>
+                        <td>{{ table|first }}</td>
+                        <td>
+                            <a href="{{ path('import_data', {'table_name': table|first}) }}" class="btn btn-primary">Insert data</a>
+                            <a href="{{ path('anl_list', {'table_name': table|first}) }}" class="btn btn-secondary">Détails</a>
+                        </td>
+
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+        <div>
+            <a href="{{ path('create_table') }}" class="btn btn-primary">Create Table</a>
+        </div>
+    </div>
+{% endblock %}

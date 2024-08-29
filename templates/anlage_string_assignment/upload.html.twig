@@ -1,0 +1,48 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Import de Données{% endblock %}
+
+
+{% block body %}
+    <div class="container mt-5">
+        <h1 class="text-center">Import de Données</h1>
+
+        <div class="row">
+            <div class="col-md-6 offset-md-3">
+                {# Affichage des messages flash #}
+                {% for message in app.flashes('success') %}
+                    <div class="alert alert-success">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+
+                {% for message in app.flashes('error') %}
+                    <div class="alert alert-danger">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+
+                {# Formulaire de téléchargement #}
+                {{ form_start(form, {'attr': {'class': 'form-upload'}}) }}
+
+                <div class="mb-3">
+                    {{ form_row(form.anlage, {'attr': {'class': 'form-control'}}) }}
+                </div>
+
+                <div class="mb-3">
+                    {{ form_row(form.file, {'attr': {'class': 'form-control'}}) }}
+                </div>
+
+                <button type="submit" class="btn btn-primary">Importer</button>
+
+                {{ form_end(form) }}
+
+                <div class="mt-3">
+                    <a href="{{ path('export_anlage_string_assignments') }}" class="btn btn-secondary">Exporter </a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+

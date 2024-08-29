@@ -1,0 +1,53 @@
+
+
+{% extends 'base.html.twig' %}
+
+{% block title %}Table Details{% endblock %}
+
+{% block body %}
+    <div class="container">
+        <h1 class="my-4 text-center">Table {{ table_name }}</h1>
+        <div class="d-flex justify-content-between">
+            <a href="{{ path('list_tables') }}" class="btn btn-secondary">Back</a>
+
+        </div>
+        {% if data is empty %}
+        <div class="alert alert-warning">
+            There is no Table in the Database.
+        </div>
+        {% else %}
+            <div class="mb-3 d-flex justify-content-end gap-1">
+                {% if "I" not in data[0]|keys %}
+                <button class="btn btn-primary" onclick="window.location.href='{{ path('current_all', {'tableName': table_name}) }}'">Current All</button>
+                <button class="btn btn-success" onclick="window.location.href='{{ path('voltage_all', {'tableName': table_name}) }}'">Voltage All</button>
+                {% endif %}
+            </div>
+        <table class="table table-bordered" data-controller="anl-list">
+
+            <thead>
+            <tr>
+                {% for key in data[0]|keys %}
+                    <th>{{ key }}</th>
+                {% endfor %}
+{#                <th>Actions</th>#}
+            </tr>
+            </thead>
+            <tbody>
+            {% for row in data %}
+                <tr>
+                    {% for value in row %}
+                        <td>{{ value }}</td>
+                    {% endfor %}
+{#                    <td class="d-flex justify-content-between">#}
+{#                        <button class="btn btn-primary btn-sm" data-action="anl-list#handleCurrentButtonClick" data-table-name="{{ table_name }}" data-row-id="{{ row.db_id }}">Current</button>#}
+{#                        <button class="btn btn-success btn-sm">Voltage</button>#}
+{#                    </td>#}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+{% endblock %}
+
+

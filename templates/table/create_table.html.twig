@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Create Table{% endblock %}
+
+{% block body %}
+    <div class="container" data-controller="hide-message" >
+
+        <div style="height: 10vh;"> <a href="{{ path('list_tables') }}" class="btn btn-secondary my-3">Back To list Tables</a> </div>
+        <div class="d-flex flex-column justify-content-center align-items-center" style="height: 90vh;">
+            {% if message is not null  %}
+                <div class="alert alert-danger mt-3" data-hide-message-target="message">{{ message }}</div>
+            {% endif %}
+            <div class="card" style="min-width: 600px;">
+                <div class="card-body">
+                    <h1 class="text-center mb-4">Create Table</h1>
+                    {{ form_start(form) }}
+                    {{ form_row(form.name, {'attr': {'class': 'form-control'}}) }}
+                    <div class="text-center">
+                        <button class="btn btn-primary mt-3">Submit</button>
+                    </div>
+                    {{ form_end(form) }}
+                </div>
+            </div>
+        </div>
+
+    </div>
+{% endblock %}
