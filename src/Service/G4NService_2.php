@@ -90,20 +90,23 @@ class G4NService_2
     private function createNewTable(string $tableName): void
     {
         $createSql = "CREATE TABLE IF NOT EXISTS `$tableName` (
-            `db_id` bigint(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
-            `anl_id` int(11) NOT NULL,
-            `stamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            `wr_group` int(11) NOT NULL,
-            `group_ac` int(11) NOT NULL,
-            `wr_num` int(11) NOT NULL,
-            `channel` varchar(20) NOT NULL,
-            `I_value` varchar(20) DEFAULT NULL,
-            `U_value` varchar(20) DEFAULT NULL
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+        `db_id` int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        `anl_id` smallint(6) NOT NULL,
+        `stamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        `wr_group` smallint(6) NOT NULL,
+        `group_ac` smallint(6) NOT NULL,
+        `wr_num` smallint(6) NOT NULL,
+        `channel` varchar(20) NOT NULL,
+        `I_value` varchar(20) DEFAULT NULL,
+        `U_value` varchar(20) DEFAULT NULL,
+        INDEX idx_anl_wr (`anl_id`, `wr_group`,`stamp`,`group_ac`,`wr_num`,`channel`,`I_value`,`U_value`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+
         $this->targetDb->exec($createSql);
     }
 
-   /*fetchDataBetweenDates() récupère des données de la base de données source entre deux dates spécifiées pour une table donnée.*/
+
+    /*fetchDataBetweenDates() récupère des données de la base de données source entre deux dates spécifiées pour une table donnée.*/
     // Fetch data between specified dates from the source database.
     private function fetchDataBetweenDates(string $table, string $startDate, string $endDate): array
     {
