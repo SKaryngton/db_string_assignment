@@ -206,6 +206,44 @@ class G4NService_2
         }
     }
 
+    /*Ce script partitionne les données dynamiquement en fonction des dates déjà existantes dans votre table.
+    Chaque mois distinct de la colonne stamp se voit attribuer une partition, et une partition "future" est ajoutée pour
+    capturer les données qui ne rentrent pas dans les partitions définies. Cela permet de gérer efficacement la croissance
+    des données tout en optimisant les performances des requêtes.*/
+    private function partitionTableByExistingTimestamps(string $tableName): void
+    {
+        // Étape 1 : Récupérer les mois distincts de la colonne `stamp`
+        $query = "SELECT DISTINCT DATE_FORMAT(stamp, '%Y-%m') as year_month FROM `$tableName` ORDER BY year_month;";
+        $stmt = $this->targetDb->query($query);
+        $months = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
+        // Étape 2 : Créer des partitions dynamiques pour chaque mois
+        foreach ($months as $yearMonth) {
+            // Convertir "YYYY-MM" en "YYYY-MM-01" pour obtenir le premier jour du mois
+            $firstDayNextMonth = date('Y-m-d', strtotime($yearMonth . '-01 +1 month'));
+
+            // Nom de la partition basé sur le mois
+            $partitionName = 'p' . str_replace('-', '', $yearMonth);
+
+            // Requête pour ajouter une nouvelle partition
+            $addPartitionSql = "ALTER TABLE `$tableName`
+            ADD PARTITION IF NOT EXISTS (
+                PARTITION $partitionName VALUES LESS THAN (TO_DAYS('$firstDayNextMonth'))
+            );";
+
+            // Exécuter la requête pour ajouter la partition
+            $this->targetDb->exec($addPartitionSql);
+        }
+
+        // Étape 3 : Ajouter une partition pour les futures dates (par exemple, jusqu'à 2030)
+        $addFuturePartitionSql = "ALTER TABLE `$tableName`
+        ADD PARTITION IF NOT EXISTS (
+            PARTITION pfuture VALUES LESS THAN MAXVALUE
+        );";
+
+        $this->targetDb->exec($addFuturePartitionSql);
+    }
+
 
 
     /* transferData()  coordonne l'ensemble du processus de transfert de données.
@@ -221,10 +259,8 @@ class G4NService_2
         set_time_limit(0);
         ini_set('memory_limit', '-1');
 
-
         // Retrieve the names of the tables from the source database that match the specified pattern.
         $tables = $this->getTableNames('CX181');
-
 
         foreach ($tables as $table) {
             // Generate the new table name for the target database
@@ -233,8 +269,7 @@ class G4NService_2
             // Retrieve data from the source table between the specified dates.
             $rows = $this->fetchDataBetweenDates($table, $startDate, $endDate);
 
-
-            if(count($rows)>0){
+            if (count($rows) > 0) {
                 // Create (or recreate) the table in the target database.
                 $this->createNewTable($newTableName);
 
@@ -243,9 +278,10 @@ class G4NService_2
 
                 // Insert the grouped data into the target table
                 $this->insertGroupedData($newTableName, $groupedData);
+
+                // Partition the table by existing timestamps after data insertion
+                $this->partitionTableByExistingTimestamps($newTableName);
             }
-
-
         }
     }
 
