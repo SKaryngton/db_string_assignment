@@ -5,8 +5,6 @@ namespace App\Service;
 use DateTime;
 use PDO;
 use PDOException;
-use Symfony\Component\Mailer\MailerInterface;
-use Symfony\Component\Mime\Email;
 
 class G4NService_2
 {
@@ -85,21 +83,23 @@ class G4NService_2
         return 'db__string_pv_' . $suffix;
     }
 
-    /* createNewTable()  crée une nouvelle table dans la base de données cible avec une structure de colonnes spécifique.*/
+    /* createNewTable()  crée une nouvelle table dans la base de données cible avec une structure de colonnes spécifique.
+    Lorsque vous créez la table dans la base de données cible, vous devez spécifier les partitions dès la création.
+    */
     // Create a new table in the target database.
-    private function createNewTable(string $tableName): void
+    function createNewTable(string $tableName): void
     {
-        $createSql = "CREATE TABLE IF NOT EXISTS `$tableName` (
-        `db_id` int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
-        `anl_id` smallint(6) NOT NULL,
-        `stamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        `wr_group` smallint(6) NOT NULL,
-        `group_ac` smallint(6) NOT NULL,
-        `wr_num` smallint(6) NOT NULL,
-        `channel` varchar(20) NOT NULL,
-        `I_value` varchar(20) DEFAULT NULL,
-        `U_value` varchar(20) DEFAULT NULL,
-        INDEX idx_anl_wr (`anl_id`, `wr_group`,`stamp`,`group_ac`,`wr_num`,`channel`,`I_value`,`U_value`)
+        $createSql = "CREATE TABLE IF NOT EXISTS $tableName (
+        db_id int(11) NOT NULL PRIMARY KEY AUTO_INCREMENT,
+        anl_id smallint(6) NOT NULL,
+        stamp timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        wr_group smallint(6) NOT NULL,
+        group_ac smallint(6) NOT NULL,
+        wr_num smallint(6) NOT NULL,
+        channel varchar(20) NOT NULL,
+        I_value varchar(20) DEFAULT NULL,
+        U_value varchar(20) DEFAULT NULL,
+        INDEX idx_anl_wr (anl_id, wr_group,stamp,group_ac,wr_num,channel,I_value,U_value)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
 
         $this->targetDb->exec($createSql);
@@ -206,45 +206,6 @@ class G4NService_2
         }
     }
 
-    /*Ce script partitionne les données dynamiquement en fonction des dates déjà existantes dans votre table.
-    Chaque mois distinct de la colonne stamp se voit attribuer une partition, et une partition "future" est ajoutée pour
-    capturer les données qui ne rentrent pas dans les partitions définies. Cela permet de gérer efficacement la croissance
-    des données tout en optimisant les performances des requêtes.*/
-    private function partitionTableByExistingTimestamps(string $tableName): void
-    {
-        // Étape 1 : Récupérer les mois distincts de la colonne `stamp`
-        $query = "SELECT DISTINCT DATE_FORMAT(stamp, '%Y-%m') as year_month FROM `$tableName` ORDER BY year_month;";
-        $stmt = $this->targetDb->query($query);
-        $months = $stmt->fetchAll(PDO::FETCH_COLUMN);
-
-        // Étape 2 : Créer des partitions dynamiques pour chaque mois
-        foreach ($months as $yearMonth) {
-            // Convertir "YYYY-MM" en "YYYY-MM-01" pour obtenir le premier jour du mois
-            $firstDayNextMonth = date('Y-m-d', strtotime($yearMonth . '-01 +1 month'));
-
-            // Nom de la partition basé sur le mois
-            $partitionName = 'p' . str_replace('-', '', $yearMonth);
-
-            // Requête pour ajouter une nouvelle partition
-            $addPartitionSql = "ALTER TABLE `$tableName`
-            ADD PARTITION IF NOT EXISTS (
-                PARTITION $partitionName VALUES LESS THAN (TO_DAYS('$firstDayNextMonth'))
-            );";
-
-            // Exécuter la requête pour ajouter la partition
-            $this->targetDb->exec($addPartitionSql);
-        }
-
-        // Étape 3 : Ajouter une partition pour les futures dates (par exemple, jusqu'à 2030)
-        $addFuturePartitionSql = "ALTER TABLE `$tableName`
-        ADD PARTITION IF NOT EXISTS (
-            PARTITION pfuture VALUES LESS THAN MAXVALUE
-        );";
-
-        $this->targetDb->exec($addFuturePartitionSql);
-    }
-
-
 
     /* transferData()  coordonne l'ensemble du processus de transfert de données.
     Elle récupère les noms des tables de la base de données source, génère de nouveaux noms de tables pour la base de données cible,
@@ -253,36 +214,78 @@ class G4NService_2
     puis les insère en lots dans les tables cibles correspondantes.*/
     // Retrieve table names, process data, and perform transfer
     // Code for transferring data from source to target database
-    public function transferData(string $startDate, string $endDate): void
+    public function transferData(string $suffix, string $startDate, string $endDate): void
     {
+        $currentTime = new DateTime();
+
+        // Dump the current time in the desired format
+        dump('Start', $currentTime->format('Y-m-d H:i:s'));
+
         // Set unlimited time limit and memory for the script
         set_time_limit(0);
         ini_set('memory_limit', '-1');
 
         // Retrieve the names of the tables from the source database that match the specified pattern.
-        $tables = $this->getTableNames('CX181');
+        $tables = $this->getTableNames($suffix);
+        dump($tables);
 
         foreach ($tables as $table) {
             // Generate the new table name for the target database
             $newTableName = $this->getNewTableName($table);
 
+            $currentTime = new DateTime();
+
+            // Dump the current time in the desired format
+            dump($currentTime->format('Y-m-d H:i:s'));
+
+            // Use double quotes for string interpolation
+            dump("Fetching data between $startDate and $endDate from $table processing ....");
+
             // Retrieve data from the source table between the specified dates.
             $rows = $this->fetchDataBetweenDates($table, $startDate, $endDate);
+
+            $currentTime = new DateTime();
+
+            // Dump the current time in the desired format
+            dump($currentTime->format('Y-m-d H:i:s'));
+            dump("Fetching data between $startDate and $endDate from $table finished");
 
             if (count($rows) > 0) {
                 // Create (or recreate) the table in the target database.
                 $this->createNewTable($newTableName);
 
+                $currentTime = new DateTime();
+
+                // Dump the current time in the desired format
+                dump($currentTime->format('Y-m-d H:i:s'));
+                dump("$newTableName found or created");
+
+                $currentTime = new DateTime();
+
+                // Dump the current time in the desired format
+                dump($currentTime->format('Y-m-d H:i:s'));
+                dump("Group data by 'stamp'");
                 // Process the data and group it by 'stamp'.
                 $groupedData = $this->processAndGroupData($rows);
 
+                $currentTime = new DateTime();
+
+                // Dump the current time in the desired format
+                dump($currentTime->format('Y-m-d H:i:s'));
+                dump("write data into $newTableName");
                 // Insert the grouped data into the target table
                 $this->insertGroupedData($newTableName, $groupedData);
 
-                // Partition the table by existing timestamps after data insertion
-                $this->partitionTableByExistingTimestamps($newTableName);
+                $currentTime = new DateTime();
+
+                dump($currentTime->format('Y-m-d H:i:s'));
+                dump('Done');
             }
         }
+
     }
 
+
 }
+
+//DROP TABLE IF EXISTS `db__string_pv_CX104`;

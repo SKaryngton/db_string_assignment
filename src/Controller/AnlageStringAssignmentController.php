@@ -172,13 +172,14 @@ class AnlageStringAssignmentController extends AbstractController
 
         $month = 7;
         $year = 2024; // Define the year
+        $suffix ='CX104';
 
         // Using DateTime to set start and end dates
         $dateX = new DateTime("$year-$month-01 00:00:00");
         $dateY = (clone $dateX)->modify('last day of this month')->setTime(23, 59, 59);
 
         // Transfer data for the specified date range
-      //  $service->transferData($dateX->format('Y-m-d H:i:s'), $dateY->format('Y-m-d H:i:s'));
+       // $service->transferData($suffix,$dateX->format('Y-m-d H:i:s'), $dateY->format('Y-m-d H:i:s'));
 
         return $this->render('test.html.twig');
 

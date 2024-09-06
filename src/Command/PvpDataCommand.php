@@ -27,17 +27,20 @@ class PvpDataCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $month = 7;
+        $month = 7;//month
         $year = 2024; // Define the year
+        $suffix ='CX104'; //db suffix name
 
         // Using DateTime to set start and end dates
         $dateX = new DateTime("$year-$month-01 00:00:00");
         $dateY = (clone $dateX)->modify('last day of this month')->setTime(23, 59, 59);
 
         // Transfer data for the specified date range
-        $this->tableService->transferData($dateX->format('Y-m-d H:i:s'), $dateY->format('Y-m-d H:i:s'));
+        $this->tableService->transferData($suffix,$dateX->format('Y-m-d H:i:s'), $dateY->format('Y-m-d H:i:s'));
 
         return Command::SUCCESS;
     }
 
 }
+// execute in the console with
+//  php bin/console app:pvp
